@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Consulta de Estoque — FEMSA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap');
+  :root{--red:#D50000;--red-light:#FF1A1A;--black:#0A0A0A;--gray-dark:#1A1A1A;--gray-mid:#2C2C2C;--gray:#444;--gray-light:#888;--white:#F5F5F5;--accent:#FF6B00}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;min-height:100vh;overflow-x:hidden}
+  header{background:var(--gray-dark);border-bottom:3px solid var(--red);padding:14px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100}
+  .logo-box{background:var(--red);width:42px;height:42px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;color:white;flex-shrink:0;line-height:1.1;text-align:center}
+  .header-text h1{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;line-height:1}
+  .header-text p{font-size:11px;color:var(--gray-light);margin-top:2px}
+  .btn-back{margin-left:auto;background:none;border:1px solid var(--gray);color:var(--gray-light);padding:6px 12px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;display:none}
+  .btn-back:hover{border-color:var(--red);color:var(--white)}
+  .view{display:none}.view.active{display:block}
+  .page-pad{padding-bottom:70px}
+  #home-view{padding:20px 16px 40px}
+  .update-bar{background:var(--gray-mid);border-left:3px solid var(--accent);padding:10px 14px;font-size:12px;color:var(--gray-light);margin-bottom:20px;display:flex;align-items:center;gap:8px}
+  .update-bar strong{color:var(--white)}
+  .pulse{width:8px;height:8px;background:var(--accent);border-radius:50%;flex-shrink:0;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .section-label{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gray-light);margin-bottom:12px}
+  .search-input{width:100%;background:var(--gray-mid);border:1px solid var(--gray);color:var(--white);padding:11px 14px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;transition:border .2s;margin-bottom:20px}
+  .search-input::placeholder{color:var(--gray-light)}.search-input:focus{border-color:var(--red)}
+  .depot-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+  .depot-card{background:var(--gray-dark);border:1px solid var(--gray-mid);padding:18px 14px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+  .depot-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+  .depot-card[data-dep="3100"]::before{background:#C8102E}
+  .depot-card[data-dep="1200"]::before{background:#008C8C}
+  .depot-card[data-dep="3000"]::before{background:#1A5C9B}
+  .depot-card[data-dep="3400"]::before{background:#7B3FA0}
+  .depot-card:active{transform:translateY(-2px);border-color:var(--gray-light)}
+  .depot-code{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:900;line-height:1;margin-bottom:4px}
+  .depot-card[data-dep="3100"] .depot-code{color:#FF4D6D}
+  .depot-card[data-dep="1200"] .depot-code{color:#00D4D4}
+  .depot-card[data-dep="3000"] .depot-code{color:#4DA6FF}
+  .depot-card[data-dep="3400"] .depot-code{color:#C77DFF}
+  .depot-name{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--white);line-height:1.3}
+  .depot-count{margin-top:10px;font-size:11px;color:var(--gray-light)}
+  .depot-count span{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;color:var(--white)}
+  #depot-view{padding:0 0 40px}
+  .depot-header{padding:16px 16px 12px;border-bottom:1px solid var(--gray-mid);position:relative;overflow:hidden}
+  .depot-header::after{content:attr(data-code);position:absolute;right:-10px;top:-10px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:80px;opacity:.05;color:white;line-height:1;pointer-events:none}
+  .depot-accent{height:4px;width:30px;margin-bottom:8px}
+  .depot-header h2{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+  .depot-header-sub{font-size:12px;color:var(--gray-light);margin-top:4px}
+  .search-bar{padding:12px 16px;background:var(--gray-dark);position:sticky;top:67px;z-index:50;border-bottom:1px solid var(--gray-mid)}
+  .table-wrap{padding:0 16px;margin-top:12px}
+  .table-head{display:grid;grid-template-columns:95px 1fr 60px;gap:8px;padding:8px 10px;background:var(--gray-mid);font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray-light);margin-bottom:4px}
+  .col-qty{text-align:right}
+  .item-row{display:grid;grid-template-columns:95px 1fr 60px;gap:8px;padding:12px 10px;border-bottom:1px solid var(--gray-mid);align-items:center}
+  .item-code{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:var(--gray-light)}
+  .item-desc{font-size:13px;color:var(--white);line-height:1.3}
+  .item-unit{font-size:10px;color:var(--gray-light);margin-top:2px}
+  .item-qty{text-align:right;font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700}
+  .item-qty.zero{color:#FF5252}.item-qty.low{color:var(--accent)}.item-qty.ok{color:#69F0AE}
+  .no-results{text-align:center;padding:40px 20px;color:var(--gray-light);font-size:13px}
+  #admin-view{padding:20px 16px 40px}
+  .admin-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+  .admin-sub{font-size:12px;color:var(--gray-light);margin-bottom:20px;line-height:1.6}
+  .section-title{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gray-light);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--gray-mid);margin-top:20px}
+  select,textarea{width:100%;background:var(--gray-mid);border:1px solid var(--gray);color:var(--white);padding:10px 12px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;transition:border .2s}
+  textarea{resize:vertical;min-height:160px;font-size:12px;line-height:1.8;margin-top:4px}
+  textarea:focus,select:focus{border-color:var(--red)}
+  .hint{font-size:11px;color:var(--gray-light);margin:6px 0 8px;background:var(--gray-dark);padding:8px 10px;border-left:2px solid var(--gray);line-height:1.7}
+  .hint code{color:var(--accent);font-family:monospace}
+  .btn-primary{background:var(--red);color:white;border:none;padding:13px 20px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;width:100%;margin-top:10px;transition:background .2s}
+  .btn-primary:hover{background:var(--red-light)}
+  .btn-download{background:#1A5C2A;color:white;border:none;padding:13px 20px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;width:100%;margin-top:8px;transition:background .2s;display:none}
+  .btn-download.visible{display:block}
+  .btn-download:hover{background:#22703A}
+  .alert{padding:12px 14px;font-size:13px;margin-top:10px;display:none;line-height:1.6;border-radius:0}
+  .alert.success{background:#0a2a0a;border-left:3px solid #69F0AE;color:#69F0AE}
+  .alert.error{background:#2a0a0a;border-left:3px solid var(--red);color:#FF8A80}
+  .info-box{background:var(--gray-mid);border-left:3px solid var(--accent);padding:12px 14px;font-size:12px;color:var(--gray-light);line-height:1.7;margin-top:16px}
+  .info-box strong{color:var(--white);display:block;margin-bottom:4px}
+  .resumo-box{background:var(--gray-dark);border:1px solid var(--gray-mid);padding:12px 14px;margin-top:12px;display:none}
+  .resumo-box.visible{display:block}
+  .resumo-title{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray-light);margin-bottom:8px}
+  .resumo-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--gray-mid);font-size:13px}
+  .resumo-row:last-child{border:none}
+  .resumo-dep{color:var(--gray-light)}
+  .resumo-cnt{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:var(--white)}
+  .resumo-cnt.zero{color:var(--gray)}
+  #qr-view{padding:20px 16px 40px}
+  .qr-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+  .qr-card{background:white;padding:16px 12px;text-align:center}
+  .qr-card-dep{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:#000;line-height:1}
+  .qr-card-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#444;margin-bottom:10px;line-height:1.3}
+  .qr-wrap{display:flex;justify-content:center;margin-bottom:8px}
+  .qr-scan{font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.5px}
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--gray-dark);border-top:1px solid var(--gray-mid);display:flex;z-index:100}
+  .nav-btn{flex:1;background:none;border:none;color:var(--gray-light);padding:12px 4px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .nav-btn svg{width:18px;height:18px}
+  .nav-btn.active{color:var(--red)}.nav-btn:hover{color:var(--white)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-box">KO<br>F</div>
+  <div class="header-text">
+    <h1>Estoque FEMSA</h1>
+    <p id="header-sub">Selecione um depósito</p>
+  </div>
+  <button class="btn-back" id="btn-back" onclick="goHome()">← Voltar</button>
+</header>
+
+<!-- HOME -->
+<div class="view active page-pad" id="home-view">
+  <div style="padding:20px 16px 0">
+    <div class="update-bar">
+      <div class="pulse"></div>
+      <div>Atualizado em: <strong id="txt-update">—</strong></div>
+    </div>
+    <div class="section-label">Busca geral</div>
+    <input class="search-input" type="text" id="global-search" placeholder="Código SAP ou descrição..." oninput="globalSearch(this.value)">
+  </div>
+  <div id="global-results" style="display:none;padding:0 16px">
+    <div class="table-head"><div>Código</div><div>Descrição</div><div class="col-qty">Qtd</div></div>
+    <div id="global-list"></div>
+  </div>
+  <div id="home-main" style="padding:0 16px">
+    <div class="section-label">Depósitos</div>
+    <div class="depot-grid">
+      <div class="depot-card" data-dep="3100" onclick="openDepot('3100')">
+        <div class="depot-code">3100</div>
+        <div class="depot-name">Uniformes e EPIs</div>
+        <div class="depot-count"><span id="cnt-3100">0</span> itens</div>
+      </div>
+      <div class="depot-card" data-dep="1200" onclick="openDepot('1200')">
+        <div class="depot-code">1200</div>
+        <div class="depot-name">Químicos e Filtros</div>
+        <div class="depot-count"><span id="cnt-1200">0</span> itens</div>
+      </div>
+      <div class="depot-card" data-dep="3000" onclick="openDepot('3000')">
+        <div class="depot-code">3000</div>
+        <div class="depot-name">Peças</div>
+        <div class="depot-count"><span id="cnt-3000">0</span> itens</div>
+      </div>
+      <div class="depot-card" data-dep="3400" onclick="openDepot('3400')">
+        <div class="depot-code">3400</div>
+        <div class="depot-name">Reforma</div>
+        <div class="depot-count"><span id="cnt-3400">0</span> itens</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DEPOT -->
+<div class="view page-pad" id="depot-view">
+  <div class="depot-header" id="depot-header" data-code="">
+    <div class="depot-accent" id="depot-accent"></div>
+    <h2 id="depot-title"></h2>
+    <div class="depot-header-sub" id="depot-sub"></div>
+  </div>
+  <div class="search-bar">
+    <input class="search-input" style="margin:0" type="text" id="depot-search" placeholder="Buscar código ou descrição..." oninput="filterDepot(this.value)">
+  </div>
+  <div class="table-wrap">
+    <div class="table-head"><div>Código SAP</div><div>Descrição</div><div class="col-qty">Qtd</div></div>
+    <div id="depot-list"></div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div class="view page-pad" id="admin-view">
+  <div style="padding:0 16px">
+    <div class="admin-title">Atualizar Estoque</div>
+    <div class="admin-sub">Importe os dados de cada depósito, depois clique em <strong>Baixar HTML</strong> para salvar tudo num arquivo só.</div>
+
+    <div class="section-title">1. Selecione o depósito</div>
+    <select id="admin-dep">
+      <option value="3100">3100 — Uniformes e EPIs</option>
+      <option value="1200">1200 — Químicos e Filtros</option>
+      <option value="3000">3000 — Peças</option>
+      <option value="3400">3400 — Reforma</option>
+    </select>
+
+    <div class="section-title">2. Cole os dados (do Excel/SAP)</div>
+    <div class="hint">
+      Selecione no Excel: <code>Código SAP → Descrição → Quantidade → Unidade</code> e cole aqui.<br>
+      Exemplo: <code>10005432	Luva Nitrílica M	24	PAR</code>
+    </div>
+    <textarea id="admin-paste" placeholder="Cole aqui..."></textarea>
+
+    <button class="btn-primary" onclick="importData()">✓ Importar Dados</button>
+    <div class="alert" id="admin-alert"></div>
+
+    <!-- Resumo dos depósitos -->
+    <div class="resumo-box" id="resumo-box">
+      <div class="resumo-title">Dados importados nesta sessão</div>
+      <div id="resumo-list"></div>
+    </div>
+
+    <div class="section-title">3. Baixar arquivo final</div>
+    <div class="hint">Clique abaixo para baixar o HTML com todos os dados importados. Substitua o arquivo na pasta de rede.</div>
+    <button class="btn-download visible" id="btn-download" onclick="downloadHTML()">⤓ Baixar HTML atualizado</button>
+
+    <div class="info-box">
+      <strong>Como funciona</strong>
+      Você pode importar vários depósitos antes de baixar.<br>
+      O arquivo baixado já tem todos os dados gravados dentro dele.
+    </div>
+  </div>
+</div>
+
+<!-- QR -->
+<div class="view page-pad" id="qr-view">
+  <div style="padding:0 16px">
+    <div class="admin-title">QR Codes</div>
+    <div class="admin-sub">Imprima e cole na porta de cada depósito.</div>
+    <div class="section-title">Caminho do arquivo na rede</div>
+    <input class="search-input" style="margin-bottom:4px" type="text" id="qr-path" placeholder="Ex: R:/PROD_FAB/html/consulta_estoque_femsa.html" oninput="renderQR()">
+    <div class="hint" style="margin-bottom:0">O endereço aparece na barra do navegador quando você abre o arquivo.</div>
+    <div class="qr-grid" id="qr-grid"></div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-home" onclick="switchView('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Início
+  </button>
+  <button class="nav-btn" id="nav-admin" onclick="switchView('admin')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    Atualizar
+  </button>
+  <button class="nav-btn" id="nav-qr" onclick="switchView('qr')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="4" height="4"/></svg>
+    QR Codes
+  </button>
+</nav>
+
+<script>
+// ========== DADOS EMBUTIDOS ==========
+var STOCK_DATA = {"3100":[],"1200":[],"3000":[],"3400":[]};
+var UPDATE_DATE = "";
+// =====================================
+
+const DEPOTS = {
+  '3100':{ name:'Uniformes e EPIs',  color:'#C8102E' },
+  '1200':{ name:'Químicos e Filtros', color:'#008C8C' },
+  '3000':{ name:'Peças',             color:'#1A5C9B' },
+  '3400':{ name:'Reforma',           color:'#7B3FA0' }
+};
+
+// cópia em memória — editável nesta sessão
+var stock = JSON.parse(JSON.stringify(STOCK_DATA));
+
+// ========== CONTAGENS ==========
+function updateCounts() {
+  Object.keys(DEPOTS).forEach(function(d) {
+    var el = document.getElementById('cnt-' + d);
+    if (el) el.textContent = (stock[d] || []).length;
+  });
+  var upd = document.getElementById('txt-update');
+  if (upd) upd.textContent = UPDATE_DATE || '—';
+  updateResumo();
+}
+
+function updateResumo() {
+  var box = document.getElementById('resumo-box');
+  var list = document.getElementById('resumo-list');
+  if (!box || !list) return;
+  var html = '';
+  var temAlgum = false;
+  Object.keys(DEPOTS).forEach(function(d) {
+    var cnt = (stock[d] || []).length;
+    if (cnt > 0) temAlgum = true;
+    html += '<div class="resumo-row"><span class="resumo-dep">' + d + ' — ' + DEPOTS[d].name + '</span><span class="resumo-cnt' + (cnt===0?' zero':'') + '">' + cnt + ' itens</span></div>';
+  });
+  list.innerHTML = html;
+  box.classList.toggle('visible', temAlgum);
+}
+
+// ========== NAVEGAÇÃO ==========
+function switchView(v) {
+  document.querySelectorAll('.view').forEach(function(x){ x.classList.remove('active'); });
+  document.querySelectorAll('.nav-btn').forEach(function(x){ x.classList.remove('active'); });
+  document.getElementById(v + '-view').classList.add('active');
+  var nb = document.getElementById('nav-' + v);
+  if (nb) nb.classList.add('active');
+  document.getElementById('btn-back').style.display = 'none';
+  document.getElementById('header-sub').textContent = 'Selecione um depósito';
+  if (v === 'qr') renderQR();
+}
+
+function goHome() {
+  switchView('home');
+  document.getElementById('nav-home').classList.add('active');
+  var gs = document.getElementById('global-search');
+  if (gs) gs.value = '';
+  document.getElementById('global-results').style.display = 'none';
+  document.getElementById('home-main').style.display = 'block';
+}
+
+function openDepot(dep) {
+  var info = DEPOTS[dep];
+  document.querySelectorAll('.view').forEach(function(x){ x.classList.remove('active'); });
+  document.querySelectorAll('.nav-btn').forEach(function(x){ x.classList.remove('active'); });
+  document.getElementById('depot-view').classList.add('active');
+  document.getElementById('btn-back').style.display = 'block';
+  document.getElementById('header-sub').textContent = dep + ' — ' + info.name;
+  document.getElementById('depot-title').textContent = info.name;
+  document.getElementById('depot-header').dataset.code = dep;
+  document.getElementById('depot-accent').style.background = info.color;
+  document.getElementById('depot-search').value = '';
+  var items = stock[dep] || [];
+  renderDepot(items);
+  document.getElementById('depot-sub').textContent = items.length + ' item(s) cadastrado(s)';
+  window._currentDepot = dep;
+}
+
+// ========== RENDER ==========
+function rowHTML(item, showDep) {
+  var qty = parseFloat(String(item.qty).replace(',','.')) || 0;
+  var cls = qty === 0 ? 'zero' : qty <= 5 ? 'low' : 'ok';
+  var depTag = showDep ? '<div style="font-size:10px;color:#555;margin-top:2px">Dep. ' + item.dep + '</div>' : '';
+  return '<div class="item-row"><div><div class="item-code">' + item.code + '</div>' + depTag + '</div><div><div class="item-desc">' + item.desc + '</div><div class="item-unit">' + (item.unit||'') + '</div></div><div class="item-qty ' + cls + '">' + qty + '</div></div>';
+}
+
+function renderDepot(items) {
+  var el = document.getElementById('depot-list');
+  el.innerHTML = items.length ? items.map(function(i){ return rowHTML(i,false); }).join('') : '<div class="no-results">Nenhum item cadastrado.<br>Use "Atualizar" para importar.</div>';
+}
+
+function filterDepot(q) {
+  var dep = window._currentDepot;
+  var items = (stock[dep]||[]).filter(function(i){
+    return !q || i.code.toLowerCase().indexOf(q.toLowerCase())>=0 || i.desc.toLowerCase().indexOf(q.toLowerCase())>=0;
+  });
+  renderDepot(items);
+}
+
+function globalSearch(q) {
+  var res = document.getElementById('global-results');
+  var main = document.getElementById('home-main');
+  var list = document.getElementById('global-list');
+  if (!q.trim()) { res.style.display='none'; main.style.display='block'; return; }
+  main.style.display='none'; res.style.display='block';
+  var rows = [];
+  Object.keys(stock).forEach(function(dep){
+    (stock[dep]||[]).forEach(function(i){
+      if (i.code.toLowerCase().indexOf(q.toLowerCase())>=0 || i.desc.toLowerCase().indexOf(q.toLowerCase())>=0)
+        rows.push(Object.assign({},i,{dep:dep}));
+    });
+  });
+  list.innerHTML = rows.length ? rows.map(function(i){ return rowHTML(i,true); }).join('') : '<div class="no-results">Nenhum resultado.</div>';
+}
+
+// ========== IMPORT ==========
+function importData() {
+  var dep = document.getElementById('admin-dep').value;
+  var raw = document.getElementById('admin-paste').value.trim();
+  var alertEl = document.getElementById('admin-alert');
+  if (!raw) { showAlert('error','Cole os dados antes de importar.'); return; }
+  var lines = raw.split('\n').filter(function(l){ return l.trim(); });
+  var items = []; var erros = 0;
+  lines.forEach(function(line){
+    var p = line.split('\t');
+    // Formato SAP FEMSA: A=Código, B=Descrição, C=Unidade, D=Quantidade
+    // Aceita também formato alternativo: A=Código, B=Descrição, C=Quantidade, D=Unidade
+    if (p.length >= 3 && p[0].trim() && p[1].trim()) {
+      var code = p[0].trim();
+      var desc = p[1].trim();
+      var unit = '';
+      var qtyRaw = '';
+      // Detecta automaticamente: se p[2] é número = qty está em p[2]; se texto = unidade em p[2], qty em p[3]
+      var col2 = p[2] ? p[2].trim() : '';
+      var col3 = p[3] ? p[3].trim() : '';
+      var col2num = parseFloat(col2.replace(/\./g,'').replace(',','.'));
+      if (!isNaN(col2num) && col2num > 0) {
+        // Coluna 3 é número = qty
+        qtyRaw = col2;
+        unit = col3;
+      } else {
+        // Coluna 3 é texto (unidade), qty está na coluna 4
+        unit = col2;
+        qtyRaw = col3;
+      }
+      // Trata formato brasileiro: remove pontos de milhar, troca vírgula por ponto
+      var qty = String(qtyRaw).replace(/\./g,'').replace(',','.').trim();
+      // Exibe quantidade sem casas decimais desnecessárias
+      var qtyNum = parseFloat(qty) || 0;
+      var qtyDisplay = qtyNum % 1 === 0 ? String(Math.round(qtyNum)) : String(qtyNum);
+      items.push({ code:code, desc:desc, qty:qtyDisplay, unit:unit });
+    } else erros++;
+  });
+  if (!items.length) { showAlert('error','Nenhuma linha válida. Verifique o formato.'); return; }
+  stock[dep] = items;
+  UPDATE_DATE = new Date().toLocaleString('pt-BR');
+  updateCounts();
+  document.getElementById('admin-paste').value = '';
+  showAlert('success', '✓ ' + items.length + ' itens importados no depósito ' + dep + '.' + (erros?' ('+erros+' linha(s) ignorada(s))':''));
+}
+
+function showAlert(type, msg) {
+  var el = document.getElementById('admin-alert');
+  el.className = 'alert ' + type;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+// ========== DOWNLOAD ==========
+function downloadHTML() {
+  var template = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Consulta de Estoque — FEMSA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap');
+  :root{--red:#D50000;--red-light:#FF1A1A;--black:#0A0A0A;--gray-dark:#1A1A1A;--gray-mid:#2C2C2C;--gray:#444;--gray-light:#888;--white:#F5F5F5;--accent:#FF6B00}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;min-height:100vh;overflow-x:hidden}
+  header{background:var(--gray-dark);border-bottom:3px solid var(--red);padding:14px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100}
+  .logo-box{background:var(--red);width:42px;height:42px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:14px;color:white;flex-shrink:0;line-height:1.1;text-align:center}
+  .header-text h1{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;line-height:1}
+  .header-text p{font-size:11px;color:var(--gray-light);margin-top:2px}
+  .btn-back{margin-left:auto;background:none;border:1px solid var(--gray);color:var(--gray-light);padding:6px 12px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;display:none}
+  .btn-back:hover{border-color:var(--red);color:var(--white)}
+  .view{display:none}.view.active{display:block}
+  .page-pad{padding-bottom:70px}
+  #home-view{padding:20px 16px 40px}
+  .update-bar{background:var(--gray-mid);border-left:3px solid var(--accent);padding:10px 14px;font-size:12px;color:var(--gray-light);margin-bottom:20px;display:flex;align-items:center;gap:8px}
+  .update-bar strong{color:var(--white)}
+  .pulse{width:8px;height:8px;background:var(--accent);border-radius:50%;flex-shrink:0;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .section-label{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gray-light);margin-bottom:12px}
+  .search-input{width:100%;background:var(--gray-mid);border:1px solid var(--gray);color:var(--white);padding:11px 14px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;transition:border .2s;margin-bottom:20px}
+  .search-input::placeholder{color:var(--gray-light)}.search-input:focus{border-color:var(--red)}
+  .depot-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+  .depot-card{background:var(--gray-dark);border:1px solid var(--gray-mid);padding:18px 14px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+  .depot-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+  .depot-card[data-dep="3100"]::before{background:#C8102E}
+  .depot-card[data-dep="1200"]::before{background:#008C8C}
+  .depot-card[data-dep="3000"]::before{background:#1A5C9B}
+  .depot-card[data-dep="3400"]::before{background:#7B3FA0}
+  .depot-card:active{transform:translateY(-2px);border-color:var(--gray-light)}
+  .depot-code{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:900;line-height:1;margin-bottom:4px}
+  .depot-card[data-dep="3100"] .depot-code{color:#FF4D6D}
+  .depot-card[data-dep="1200"] .depot-code{color:#00D4D4}
+  .depot-card[data-dep="3000"] .depot-code{color:#4DA6FF}
+  .depot-card[data-dep="3400"] .depot-code{color:#C77DFF}
+  .depot-name{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--white);line-height:1.3}
+  .depot-count{margin-top:10px;font-size:11px;color:var(--gray-light)}
+  .depot-count span{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;color:var(--white)}
+  #depot-view{padding:0 0 40px}
+  .depot-header{padding:16px 16px 12px;border-bottom:1px solid var(--gray-mid);position:relative;overflow:hidden}
+  .depot-header::after{content:attr(data-code);position:absolute;right:-10px;top:-10px;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:80px;opacity:.05;color:white;line-height:1;pointer-events:none}
+  .depot-accent{height:4px;width:30px;margin-bottom:8px}
+  .depot-header h2{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+  .depot-header-sub{font-size:12px;color:var(--gray-light);margin-top:4px}
+  .search-bar{padding:12px 16px;background:var(--gray-dark);position:sticky;top:67px;z-index:50;border-bottom:1px solid var(--gray-mid)}
+  .table-wrap{padding:0 16px;margin-top:12px}
+  .table-head{display:grid;grid-template-columns:95px 1fr 60px;gap:8px;padding:8px 10px;background:var(--gray-mid);font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray-light);margin-bottom:4px}
+  .col-qty{text-align:right}
+  .item-row{display:grid;grid-template-columns:95px 1fr 60px;gap:8px;padding:12px 10px;border-bottom:1px solid var(--gray-mid);align-items:center}
+  .item-code{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:var(--gray-light)}
+  .item-desc{font-size:13px;color:var(--white);line-height:1.3}
+  .item-unit{font-size:10px;color:var(--gray-light);margin-top:2px}
+  .item-qty{text-align:right;font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700}
+  .item-qty.zero{color:#FF5252}.item-qty.low{color:var(--accent)}.item-qty.ok{color:#69F0AE}
+  .no-results{text-align:center;padding:40px 20px;color:var(--gray-light);font-size:13px}
+  #admin-view{padding:20px 16px 40px}
+  .admin-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+  .admin-sub{font-size:12px;color:var(--gray-light);margin-bottom:20px;line-height:1.6}
+  .section-title{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gray-light);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--gray-mid);margin-top:20px}
+  select,textarea{width:100%;background:var(--gray-mid);border:1px solid var(--gray);color:var(--white);padding:10px 12px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;transition:border .2s}
+  textarea{resize:vertical;min-height:160px;font-size:12px;line-height:1.8;margin-top:4px}
+  textarea:focus,select:focus{border-color:var(--red)}
+  .hint{font-size:11px;color:var(--gray-light);margin:6px 0 8px;background:var(--gray-dark);padding:8px 10px;border-left:2px solid var(--gray);line-height:1.7}
+  .hint code{color:var(--accent);font-family:monospace}
+  .btn-primary{background:var(--red);color:white;border:none;padding:13px 20px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;width:100%;margin-top:10px;transition:background .2s}
+  .btn-download{background:#1A5C2A;color:white;border:none;padding:13px 20px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;width:100%;margin-top:8px;transition:background .2s}
+  .alert{padding:12px 14px;font-size:13px;margin-top:10px;display:none;line-height:1.6}
+  .alert.success{background:#0a2a0a;border-left:3px solid #69F0AE;color:#69F0AE}
+  .alert.error{background:#2a0a0a;border-left:3px solid var(--red);color:#FF8A80}
+  .info-box{background:var(--gray-mid);border-left:3px solid var(--accent);padding:12px 14px;font-size:12px;color:var(--gray-light);line-height:1.7;margin-top:16px}
+  .info-box strong{color:var(--white);display:block;margin-bottom:4px}
+  .resumo-box{background:var(--gray-dark);border:1px solid var(--gray-mid);padding:12px 14px;margin-top:12px}
+  .resumo-title{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray-light);margin-bottom:8px}
+  .resumo-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--gray-mid);font-size:13px}
+  .resumo-row:last-child{border:none}
+  .resumo-dep{color:var(--gray-light)}
+  .resumo-cnt{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:var(--white)}
+  .resumo-cnt.zero{color:var(--gray)}
+  #qr-view{padding:20px 16px 40px}
+  .qr-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+  .qr-card{background:white;padding:16px 12px;text-align:center}
+  .qr-card-dep{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;color:#000;line-height:1}
+  .qr-card-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#444;margin-bottom:10px;line-height:1.3}
+  .qr-wrap{display:flex;justify-content:center;margin-bottom:8px}
+  .qr-scan{font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.5px}
+  .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--gray-dark);border-top:1px solid var(--gray-mid);display:flex;z-index:100}
+  .nav-btn{flex:1;background:none;border:none;color:var(--gray-light);padding:12px 4px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .nav-btn svg{width:18px;height:18px}
+  .nav-btn.active{color:var(--red)}.nav-btn:hover{color:var(--white)}
+<\/style>
+<\/head>
+<body>
+<header>
+  <div class="logo-box">KO<br>F<\/div>
+  <div class="header-text"><h1>Estoque FEMSA<\/h1><p id="header-sub">Selecione um depósito<\/p><\/div>
+  <button class="btn-back" id="btn-back" onclick="goHome()">← Voltar<\/button>
+<\/header>
+<div class="view active page-pad" id="home-view">
+  <div style="padding:20px 16px 0">
+    <div class="update-bar"><div class="pulse"><\/div><div>Atualizado em: <strong id="txt-update">` + (UPDATE_DATE||'—') + `<\/strong><\/div><\/div>
+    <div class="section-label">Busca geral<\/div>
+    <input class="search-input" type="text" id="global-search" placeholder="Código SAP ou descrição..." oninput="globalSearch(this.value)">
+  <\/div>
+  <div id="global-results" style="display:none;padding:0 16px">
+    <div class="table-head"><div>Código<\/div><div>Descrição<\/div><div class="col-qty">Qtd<\/div><\/div>
+    <div id="global-list"><\/div>
+  <\/div>
+  <div id="home-main" style="padding:0 16px">
+    <div class="section-label">Depósitos<\/div>
+    <div class="depot-grid">
+      <div class="depot-card" data-dep="3100" onclick="openDepot('3100')"><div class="depot-code">3100<\/div><div class="depot-name">Uniformes e EPIs<\/div><div class="depot-count"><span id="cnt-3100">0<\/span> itens<\/div><\/div>
+      <div class="depot-card" data-dep="1200" onclick="openDepot('1200')"><div class="depot-code">1200<\/div><div class="depot-name">Químicos e Filtros<\/div><div class="depot-count"><span id="cnt-1200">0<\/span> itens<\/div><\/div>
+      <div class="depot-card" data-dep="3000" onclick="openDepot('3000')"><div class="depot-code">3000<\/div><div class="depot-name">Peças<\/div><div class="depot-count"><span id="cnt-3000">0<\/span> itens<\/div><\/div>
+      <div class="depot-card" data-dep="3400" onclick="openDepot('3400')"><div class="depot-code">3400<\/div><div class="depot-name">Reforma<\/div><div class="depot-count"><span id="cnt-3400">0<\/span> itens<\/div><\/div>
+    <\/div>
+  <\/div>
+<\/div>
+<div class="view page-pad" id="depot-view">
+  <div class="depot-header" id="depot-header" data-code=""><div class="depot-accent" id="depot-accent"><\/div><h2 id="depot-title"><\/h2><div class="depot-header-sub" id="depot-sub"><\/div><\/div>
+  <div class="search-bar"><input class="search-input" style="margin:0" type="text" id="depot-search" placeholder="Buscar código ou descrição..." oninput="filterDepot(this.value)"><\/div>
+  <div class="table-wrap"><div class="table-head"><div>Código SAP<\/div><div>Descrição<\/div><div class="col-qty">Qtd<\/div><\/div><div id="depot-list"><\/div><\/div>
+<\/div>
+<div class="view page-pad" id="admin-view">
+  <div style="padding:0 16px">
+    <div class="admin-title">Atualizar Estoque<\/div>
+    <div class="admin-sub">Importe os dados de cada depósito, depois clique em <strong>Baixar HTML<\/strong>.<\/div>
+    <div class="section-title">1. Selecione o depósito<\/div>
+    <select id="admin-dep"><option value="3100">3100 — Uniformes e EPIs<\/option><option value="1200">1200 — Químicos e Filtros<\/option><option value="3000">3000 — Peças<\/option><option value="3400">3400 — Reforma<\/option><\/select>
+    <div class="section-title">2. Cole os dados<\/div>
+    <div class="hint">Selecione no Excel: <code>Código SAP → Descrição → Quantidade → Unidade<\/code> e cole aqui.<\/div>
+    <textarea id="admin-paste" placeholder="Cole aqui..."><\/textarea>
+    <button class="btn-primary" onclick="importData()">✓ Importar Dados<\/button>
+    <div class="alert" id="admin-alert"><\/div>
+    <div class="resumo-box" id="resumo-box"><div class="resumo-title">Dados importados<\/div><div id="resumo-list"><\/div><\/div>
+    <div class="section-title">3. Baixar arquivo final<\/div>
+    <button class="btn-download" onclick="downloadHTML()">⤓ Baixar HTML atualizado<\/button>
+    <div class="info-box"><strong>Como funciona<\/strong>Os dados ficam gravados dentro do arquivo HTML. Substitua o arquivo na pasta de rede após baixar.<\/div>
+  <\/div>
+<\/div>
+<div class="view page-pad" id="qr-view">
+  <div style="padding:0 16px">
+    <div class="admin-title">QR Codes<\/div>
+    <div class="admin-sub">Imprima e cole na porta de cada depósito.<\/div>
+    <div class="section-title">Caminho na rede<\/div>
+    <input class="search-input" style="margin-bottom:4px" type="text" id="qr-path" placeholder="Ex: R:/PROD_FAB/html/consulta_estoque_femsa.html" oninput="renderQR()">
+    <div class="qr-grid" id="qr-grid"><\/div>
+  <\/div>
+<\/div>
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-home" onclick="switchView('home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"\/><polyline points="9 22 9 12 15 12 15 22"\/><\/svg>Início<\/button>
+  <button class="nav-btn" id="nav-admin" onclick="switchView('admin')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"\/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"\/><\/svg>Atualizar<\/button>
+  <button class="nav-btn" id="nav-qr" onclick="switchView('qr')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"\/><rect x="14" y="3" width="7" height="7"\/><rect x="3" y="14" width="7" height="7"\/><rect x="14" y="14" width="4" height="4"\/><\/svg>QR Codes<\/button>
+<\/nav>
+<script>
+var STOCK_DATA = ` + JSON.stringify(stock) + `;
+var UPDATE_DATE = "` + (UPDATE_DATE||'') + `";
+const DEPOTS={'3100':{name:'Uniformes e EPIs',color:'#C8102E'},'1200':{name:'Químicos e Filtros',color:'#008C8C'},'3000':{name:'Peças',color:'#1A5C9B'},'3400':{name:'Reforma',color:'#7B3FA0'}};
+var stock=JSON.parse(JSON.stringify(STOCK_DATA));
+function updateCounts(){Object.keys(DEPOTS).forEach(function(d){var e=document.getElementById('cnt-'+d);if(e)e.textContent=(stock[d]||[]).length;});var u=document.getElementById('txt-update');if(u)u.textContent=UPDATE_DATE||'—';updateResumo();}
+function updateResumo(){var b=document.getElementById('resumo-box'),l=document.getElementById('resumo-list');if(!b||!l)return;var h='';Object.keys(DEPOTS).forEach(function(d){var c=(stock[d]||[]).length;h+='<div class="resumo-row"><span class="resumo-dep">'+d+' — '+DEPOTS[d].name+'<\/span><span class="resumo-cnt'+(c===0?' zero':'')+'">'+c+' itens<\/span><\/div>';});l.innerHTML=h;}
+function switchView(v){document.querySelectorAll('.view').forEach(function(x){x.classList.remove('active');});document.querySelectorAll('.nav-btn').forEach(function(x){x.classList.remove('active');});document.getElementById(v+'-view').classList.add('active');var nb=document.getElementById('nav-'+v);if(nb)nb.classList.add('active');document.getElementById('btn-back').style.display='none';document.getElementById('header-sub').textContent='Selecione um depósito';if(v==='qr')renderQR();}
+function goHome(){switchView('home');document.getElementById('nav-home').classList.add('active');var gs=document.getElementById('global-search');if(gs)gs.value='';document.getElementById('global-results').style.display='none';document.getElementById('home-main').style.display='block';}
+function openDepot(dep){var info=DEPOTS[dep];document.querySelectorAll('.view').forEach(function(x){x.classList.remove('active');});document.querySelectorAll('.nav-btn').forEach(function(x){x.classList.remove('active');});document.getElementById('depot-view').classList.add('active');document.getElementById('btn-back').style.display='block';document.getElementById('header-sub').textContent=dep+' — '+info.name;document.getElementById('depot-title').textContent=info.name;document.getElementById('depot-header').dataset.code=dep;document.getElementById('depot-accent').style.background=info.color;document.getElementById('depot-search').value='';var items=stock[dep]||[];renderDepot(items);document.getElementById('depot-sub').textContent=items.length+' item(s) cadastrado(s)';window._currentDepot=dep;}
+function rowHTML(item,showDep){var qty=parseFloat(String(item.qty).replace(',','.'))||0;var cls=qty===0?'zero':qty<=5?'low':'ok';var depTag=showDep?'<div style="font-size:10px;color:#555;margin-top:2px">Dep. '+item.dep+'<\/div>':'';return '<div class="item-row"><div><div class="item-code">'+item.code+'<\/div>'+depTag+'<\/div><div><div class="item-desc">'+item.desc+'<\/div><div class="item-unit">'+(item.unit||'')+'<\/div><\/div><div class="item-qty '+cls+'">'+qty+'<\/div><\/div>';}
+function renderDepot(items){var el=document.getElementById('depot-list');el.innerHTML=items.length?items.map(function(i){return rowHTML(i,false);}).join(''):'<div class="no-results">Nenhum item cadastrado.<\/div>';}
+function filterDepot(q){var dep=window._currentDepot;var items=(stock[dep]||[]).filter(function(i){return !q||i.code.toLowerCase().indexOf(q.toLowerCase())>=0||i.desc.toLowerCase().indexOf(q.toLowerCase())>=0;});renderDepot(items);}
+function globalSearch(q){var res=document.getElementById('global-results'),main=document.getElementById('home-main'),list=document.getElementById('global-list');if(!q.trim()){res.style.display='none';main.style.display='block';return;}main.style.display='none';res.style.display='block';var rows=[];Object.keys(stock).forEach(function(dep){(stock[dep]||[]).forEach(function(i){if(i.code.toLowerCase().indexOf(q.toLowerCase())>=0||i.desc.toLowerCase().indexOf(q.toLowerCase())>=0)rows.push(Object.assign({},i,{dep:dep}));});});list.innerHTML=rows.length?rows.map(function(i){return rowHTML(i,true);}).join(''):'<div class="no-results">Nenhum resultado.<\/div>';}
+function importData(){var dep=document.getElementById('admin-dep').value,raw=document.getElementById('admin-paste').value.trim();if(!raw){showAlert('error','Cole os dados antes de importar.');return;}var lines=raw.split('\\n').filter(function(l){return l.trim();});var items=[],erros=0;lines.forEach(function(line){var p=line.split('\\t');if(p.length>=3&&p[0].trim()&&p[1].trim()){var code=p[0].trim(),desc=p[1].trim(),unit='',qtyRaw='';var col2=p[2]?p[2].trim():'',col3=p[3]?p[3].trim():'';var col2num=parseFloat(col2.replace(/\./g,'').replace(',','.'));if(!isNaN(col2num)&&col2num>0){qtyRaw=col2;unit=col3;}else{unit=col2;qtyRaw=col3;}var qty=String(qtyRaw).replace(/\./g,'').replace(',','.').trim();var qtyNum=parseFloat(qty)||0;var qtyDisplay=qtyNum%1===0?String(Math.round(qtyNum)):String(qtyNum);items.push({code:code,desc:desc,qty:qtyDisplay,unit:unit});}else erros++;});if(!items.length){showAlert('error','Nenhuma linha válida.');return;}stock[dep]=items;UPDATE_DATE=new Date().toLocaleString('pt-BR');updateCounts();document.getElementById('admin-paste').value='';showAlert('success','✓ '+items.length+' itens importados no depósito '+dep+'.'+(erros?' ('+erros+' ignorada(s))':''));}
+function showAlert(type,msg){var el=document.getElementById('admin-alert');el.className='alert '+type;el.textContent=msg;el.style.display='block';}
+function downloadHTML(){alert('Para gerar novo arquivo: use o arquivo original baixado do Claude, importe os dados e baixe novamente.');}
+function renderQR(){var grid=document.getElementById('qr-grid');if(!grid)return;grid.innerHTML='';var base=document.getElementById('qr-path')&&document.getElementById('qr-path').value.trim()?document.getElementById('qr-path').value.trim():window.location.href.split('?')[0];Object.entries(DEPOTS).forEach(function(entry){var dep=entry[0],info=entry[1];var url=base+(base.indexOf('?')>=0?'&':'?')+'dep='+dep;var card=document.createElement('div');card.className='qr-card';card.innerHTML='<div class="qr-card-dep">'+dep+'<\/div><div class="qr-card-name">'+info.name+'<\/div><div class="qr-wrap" id="qr-'+dep+'"><\/div><div class="qr-scan">Escanear para consultar<\/div>';grid.appendChild(card);try{new QRCode(document.getElementById('qr-'+dep),{text:url,width:110,height:110,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});}catch(e){}});}
+var urlDep=new URLSearchParams(window.location.search).get('dep');if(urlDep&&DEPOTS[urlDep])setTimeout(function(){openDepot(urlDep);},100);
+updateCounts();
+<\/script>
+<\/body>
+<\/html>`;
+
+  var blob = new Blob([template], { type: 'text/html;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'consulta_estoque_femsa.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ========== QR ==========
+function renderQR() {
+  var grid = document.getElementById('qr-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  var pathInput = document.getElementById('qr-path');
+  var base = (pathInput && pathInput.value.trim()) ? pathInput.value.trim() : window.location.href.split('?')[0];
+  Object.entries(DEPOTS).forEach(function(entry) {
+    var dep = entry[0], info = entry[1];
+    var url = base + (base.indexOf('?') >= 0 ? '&' : '?') + 'dep=' + dep;
+    var card = document.createElement('div');
+    card.className = 'qr-card';
+    card.innerHTML = '<div class="qr-card-dep">' + dep + '</div><div class="qr-card-name">' + info.name + '</div><div class="qr-wrap" id="qr-' + dep + '"></div><div class="qr-scan">Escanear para consultar</div>';
+    grid.appendChild(card);
+    try {
+      new QRCode(document.getElementById('qr-' + dep), { text: url, width: 110, height: 110, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+    } catch(e) {}
+  });
+}
+
+var urlDep = new URLSearchParams(window.location.search).get('dep');
+if (urlDep && DEPOTS[urlDep]) setTimeout(function(){ openDepot(urlDep); }, 100);
+updateCounts();
+</script>
+</body>
+</html>
