@@ -213,6 +213,10 @@ function mostrar(items, vazio) {
   el.innerHTML = h;
 }
 
+function norm(s) {
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/-/g, "");
+}
+
 function filtrarDep(q) {
   var qt = q.trim();
   if (!qt || qt.length < 2) {
@@ -221,10 +225,10 @@ function filtrarDep(q) {
     mostrar(items, false); return;
   }
   var items = D[CUR] || [];
-  var palavras = qt.toLowerCase().split(/\s+/);
+  var palavras = norm(qt).split(/\s+/);
   var f = [];
   for (var i = 0; i < items.length; i++) {
-    var texto = (items[i].c + " " + items[i].d).toLowerCase();
+    var texto = norm(items[i].c + " " + items[i].d);
     var achou = true;
     for (var p = 0; p < palavras.length; p++) {
       if (texto.indexOf(palavras[p]) < 0) { achou = false; break; }
@@ -241,12 +245,12 @@ function buscarGeral(q) {
   q = q.trim();
   if (!q || q.length < 2) { gr.style.display="none"; hm.style.display="block"; return; }
   hm.style.display = "none"; gr.style.display = "block";
-  var palavras = q.toLowerCase().split(/\s+/);
+  var palavras = norm(q).split(/\s+/);
   var f = []; var total = 0;
   for (var d = 0; d < DEPS.length; d++) {
     var items = D[DEPS[d]] || [];
     for (var i = 0; i < items.length; i++) {
-      var texto = (items[i].c + " " + items[i].d).toLowerCase();
+      var texto = norm(items[i].c + " " + items[i].d);
       var achou = true;
       for (var p = 0; p < palavras.length; p++) {
         if (texto.indexOf(palavras[p]) < 0) { achou = false; break; }
